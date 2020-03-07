@@ -138,3 +138,15 @@ jobs:
       PathtoPublish: '$(Build.ArtifactStagingDirectory)'
       ArtifactName: 'npm-custodian'
       publishLocation: 'Container'
+
+- job: python
+  pool:
+    vmImage: 'ubuntu-latest'
+
+- script: 'pip install twine'
+
+- script: "autorest --python --input-file=openapi/custodian.json --add-credentials --output-folder=package/python/ --override-client-name=CustodianClient"
+
+- script: "autorest --python --input-file=openapi/agency.json --add-credentials --output-folder=package/python/ --override-client-name=AgencyClient"
+
+

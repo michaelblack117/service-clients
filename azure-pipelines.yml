@@ -37,7 +37,7 @@ jobs:
   - task: CmdLine@2
     inputs:
       script: 'autorest --input-file=openapi/custodian.json --csharp --output-folder=csharp/Generated --namespace=Streetcred.ServiceClients --add-credentials --override-client-name=CustodianServiceClient'
-  
+
   - task: CmdLine@2
     inputs:
       script: 'autorest --input-file=openapi/agency.json --csharp --output-folder=csharp/Generated --namespace=Streetcred.ServiceClients --add-credentials --override-client-name=AgencyServiceClient'
@@ -72,13 +72,13 @@ jobs:
     inputs:
       command: 'custom'
       customCommand: 'install -g autorest@2.0.4413'
-      
+
   - task: Npm@1
     inputs:
       command: 'custom'
       workingDir: 'typescript'
       customCommand: 'version $(majorMinorPackageVersion).$(Build.BuildId)'
-  
+
   - task: CmdLine@2
     inputs:
       script: 'autorest --input-file=openapi/agency.json --typescript --output-folder=typescript --add-credentials --override-client-name=AgencyServiceClient --source-code-folder-path=src/agency --custom-service-client-options=[baseUri=''https://api.streetcred.id/'']'
@@ -97,15 +97,55 @@ jobs:
       command: 'custom'
       workingDir: 'typescript'
       customCommand: 'run build'
-      
+
   - task: CopyFiles@2
     inputs:
       SourceFolder: 'typescript'
       Contents: '**'
       TargetFolder: '$(Build.ArtifactStagingDirectory)'
-  
+
   - task: PublishBuildArtifacts@1
     inputs:
       PathtoPublish: '$(Build.ArtifactStagingDirectory)'
       ArtifactName: 'npm'
       publishLocation: 'Container'
+
+- job: python
+  pool:
+    vmImage: 'ubuntu-latest'
+
+  steps:
+    - task: Npm@1
+      inputs:
+        command: 'custom'
+        customCommand: 'install -g autorest@2.0.4413'
+
+    - task: CmdLine@2
+      inputs:
+        script: "autorest --python --input-file=openapi/agency.json --add-credentials --output-folder=python/package --override-client-name=AgencyClient"
+
+    - task: CmdLine@2
+      inputs:
+        script: "autorest --python --input-file=openapi/custodian.json --add-credentials --output-folder=python/package --override-client-name=CustodianClient"
+
+    - task: CmdLine@2
+      inputs:
+        script:
+          'pip install --upgrade setuptools wheel'
+
+    - task: PythonScript@0
+      inputs:
+        scriptSource: 'inline'
+        workingDir: 'python/package/agency'
+        script: 'setup.py'
+        arguments: 'sdist bdist_wheel'
+
+    - task: CmdLine@2
+      inputs:
+        script:
+          'pip install --upgrade twine'
+
+    - task: CmdLine@2
+      inputs:
+        workingDir: 'python/package/agency'
+        script: 'python -m twine upload -u __token__ -p TOKEN --repository-url https://pypi.org/ dist/*'
